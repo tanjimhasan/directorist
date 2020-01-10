@@ -1724,7 +1724,113 @@ if (!class_exists('ATBDP_Shortcode')):
                 $redirect = '<script>window.location="' . esc_url($redirect_page_url) . '"</script>';
                 return $redirect;
             }
-            if ('yes' == $logged_in_user_only) {
+
+            // Checks if logged in user only
+            if ('yes' == $logged_in_user_only && !is_user_logged_in() ) {
+                $error_message = sprintf(__('You need to be logged in to view the content of this page. You can login %s. Don\'t have an account? %s', 'directorist'), apply_filters('atbdp_listing_form_login_link', "<a href='" . ATBDP_Permalink::get_login_page_link() . "'> " . __('Here', 'directorist') . "</a>"), apply_filters('atbdp_listing_form_signup_link', "<a href='" . ATBDP_Permalink::get_registration_page_link() . "'> " . __('Sign Up', 'directorist') . "</a>")); ?>
+                <section class="directory_wrapper single_area">
+                    <?php ATBDP()->helper->show_login_message($error_message); ?>
+                </section>
+                <?php
+                return ob_get_clean();
+            }
+
+            // Load 'Listings with Map' extention if available
+            if ('listings_with_map' == $view) {
+                include BDM_TEMPLATES_DIR . '/map-view.php';
+                return ob_get_clean();
+            }
+
+            // Load 'Search without Page Reload' extention if available
+            if ( defined('DirectoristSERP_TEMPLATES_DIR') ) {
+                DirectoristSERP()->load_app_scripts();
+                $serp_data = [
+                    'fields' => array(
+                        'genaral_fields' => array(
+                            'search_text' => array(
+                                'input_type' => 'search', 
+                                'value' => '',
+                                'name' => '',
+                                'id' => '',
+                                'class' => '',
+                                'wrapper_class' => '',
+                                'placeholder' => '',
+                            ),
+                            'search_category' => array(
+                                'value' => '',
+                                'name' => '',
+                                'id' => '',
+                                'class' => '',
+                                'wrapper_class' => '',
+                                'placeholder' => '',
+                            ),
+                            'search_location' => array(
+                                'value' => '',
+                                'name' => '',
+                                'id' => '',
+                                'class' => '',
+                                'wrapper_class' => '',
+                                'placeholder' => '',
+                            ),
+                            'search_price' => array(
+                                'value' => '',
+                                'name' => '',
+                                'id' => '',
+                                'class' => '',
+                                'wrapper_class' => '',
+                                'placeholder' => '',
+                            ),
+                            'search_price_range' => array(
+                                'value' => '',
+                                'name' => '',
+                                'id' => '',
+                                'class' => '',
+                                'wrapper_class' => '',
+                                'placeholder' => '',
+                            ),
+                            'search_rating' => array(
+                                'value' => '',
+                                'name' => '',
+                                'id' => '',
+                                'class' => '',
+                                'wrapper_class' => '',
+                                'placeholder' => '',
+                            ),
+                            'search_tag' => array(
+                                'value' => '',
+                                'name' => '',
+                                'id' => '',
+                                'class' => '',
+                                'wrapper_class' => '',
+                                'placeholder' => '',
+                            ),
+                            'radius_search' => array(
+                                'value' => '',
+                                'name' => '',
+                                'id' => '',
+                                'class' => '',
+                                'wrapper_class' => '',
+                                'placeholder' => '',
+                            ),
+                        ),
+                        'custom_fields' => array(
+                            
+                        ),
+                    ),
+                    'post_data' => array(),
+                    'hooks' => array(),
+                    'args' => array(),
+                ];
+                $serp_json = json_encode($post_data);
+                DirectoristSERP()->render_view('listing-with-ajax', $serp_data);
+                return ob_get_clean();
+            }
+
+            include ATBDP_TEMPLATES_DIR . "front-end/all-listings/all-$view-listings.php";
+            return ob_get_clean();
+
+            
+            /* if ('yes' == $logged_in_user_only) {
                 if (is_user_logged_in()) {
                     if ('listings_with_map' == $view) {
                         include BDM_TEMPLATES_DIR . '/map-view.php';
@@ -1752,7 +1858,7 @@ if (!class_exists('ATBDP_Shortcode')):
 
             }
 
-            return ob_get_clean();
+            return ob_get_clean(); */
 
         }
 
