@@ -290,58 +290,19 @@
 
 		var old_option_obj = arrayToObject( old_form_data );
 		var new_option_obj = arrayToObject( option );
-		
-		/* $("#vp-option-form :input").each(function(index, elm) {
-			var input_type = elm.getAttribute('type');
-			var input_name = elm.getAttribute('name');
-			var input_value = elm.getAttribute('value');
-			var value = ( $(elm).is(':checked') ) ? input_value : '';
-			
-			if ( 'checkbox' === input_type && !(new_option_obj.hasOwnProperty( input_name )) ) {
-				var obj_item = new_option_obj[ input_name ];
-				var arr_name = input_name;
-				var arr_value = value;
-				
-				if ( new_option_obj.hasOwnProperty( arr_name ) ) {
-				if ( Array.isArray(obj_item) && obj_item.length ) {
-					new_option_obj[ arr_name ].push(arr_value);
-				} else {
-					var old_data = new_option_obj[arr_name];
-					new_option_obj[ arr_name ] = [old_data];
-					new_option_obj[ arr_name ].push(arr_value);
-					}
-				} else {
-					new_option_obj[arr_name] = value;
-				}
-			}
-		}); */
-		
-		/* var updated_data = [];
-		for ( var option_item in new_option_obj ) {
-			var old_value = old_option_obj[option_item];
-			old_value = ( typeof old_value === 'undefined' ) ? '' : old_value;
-			var _old_value = ( Array.isArray( old_value ) ) ? JSON.stringify(old_value) : old_value;
-			
-			var new_value = new_option_obj[option_item];
-			new_value = ( typeof new_value === 'undefined' ) ? '' : new_value;
-			var _new_value = ( Array.isArray( new_value ) ) ? JSON.stringify(new_value) : new_value;
-		
-			if ( _old_value !== _new_value ) {
-				updated_data.push({
-					name: option_item,
-					value: new_value
-				});
-			}
-		} */
 
 		if ( Object.size(new_option_obj) > Object.size(old_option_obj) ) {
 			var grt_data_object = new_option_obj;
 			var sml_data_object = old_option_obj;
-			var greater = 'new';
+
+			// console.log('new ++');
+			// console.log( Object.size(new_option_obj), Object.size(old_option_obj) );
 		} else {
 			var grt_data_object = old_option_obj;
 			var sml_data_object = new_option_obj;
-			var greater = 'old';
+
+			// console.log('old ++');
+			// console.log( Object.size(new_option_obj), Object.size(old_option_obj) );
 		}
 
 		var updated_data = [];
@@ -355,29 +316,23 @@
 
 			var updated_value = null;
 
-			if ( _grt_value !== _sml_value ) {
-				if ( typeof sml_value === 'undefined' ) {
-					var value = ( 'new' === greater ) ? grt_data_object[item] : '';
-					updated_value = { neme: item, value: value, }
-
-				} else {
-					updated_value = { neme: item, value: new_option_obj[item] }
+			if ( typeof sml_value === 'undefined' ) {
+				updated_value = { neme: item, value: '' };
+			} else if ( _grt_value !== _sml_value ) {
+				
+				updated_value = {
+					neme: item,
+					value: new_option_obj[item],
 				}
 			}
-
+		
 			if ( updated_value ) {
 				updated_data.push(updated_value);
 			}
 			
 		}
 
-		var manual_updated_data = [
-			{ name: "disable_email_notification", value: "" }
-		];
-
-		// updated_data = manual_updated_data;
-
-		console.log({updated_data, manual_updated_data});
+		console.log( updated_data );
 
 		var data = {
 			action: 'vp_ajax_' + vp_opt.name + '_save',
@@ -388,7 +343,7 @@
 		$button.attr('disabled', 'disabled');
 		$loading.stop(true, true).fadeIn(100);
 		
-		/* if ( !updated_data.length ) {
+		if ( ! updated_data.length ) {
 			$save_status.addClass('success');
 			$save_status.html('No changes made');
 			
@@ -403,7 +358,7 @@
 				});
 			}, 3000);
 			return;
-		} */
+		}
 		
 		$.post(ajaxurl, data, function(response) {
 			$save_status.html(response.message);
