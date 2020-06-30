@@ -4,22 +4,24 @@
  * @since   7.0
  * @version 7.0
  */
+
+ global $listings, $search_form;
 ?>
 <div class="ads-advanced">
 	<form action="<?php atbdp_search_result_page_link(); ?>" class="atbd_ads-form">
 		<div class="atbd_seach_fields_wrapper" style="border: none;">
 			<div class="row atbdp-search-form">
-				<?php if ($searchform->has_search_text_field) { ?>
+				<?php if ($search_form->has_search_text_field) { ?>
 					<div class="col-md-6 col-sm-12 col-lg-4">
-						<?php $searchform->search_text_template();?>
+						<?php $search_form->search_text_template();?>
 					</div>
 				<?php
 				}
 
-				if ($searchform->has_category_field) {
+				if ($search_form->has_category_field) {
 					?>
 					<div class="col-md-6 col-sm-12 col-lg-4">
-						<?php $searchform->category_template();?>
+						<?php $search_form->category_template();?>
 					</div>
 				<?php
 				}
@@ -37,7 +39,7 @@
 				<?php
 				}
 
-				if (!$listings->location_field_type('listing_location')) {
+				if ( ! $listings->location_field_type('listing_location' ) ) {
 					$geodata = $listings->geolocation_field_data();
 				?>
 					<div class="col-md-6 col-sm-12 col-lg-4">
@@ -63,14 +65,14 @@
 		</div>
 
 		<?php
-		$searchform->price_range_template();
-		$searchform->rating_template();
-		$searchform->radius_search_template();
-		$searchform->open_now_template();
-		$searchform->tag_template();
-		$searchform->custom_fields_template();
-		$searchform->information_template();
-		$searchform->buttons_template();
+		$search_form->price_range_template();
+		$search_form->rating_template();
+		$search_form->radius_search_template();
+		$search_form->open_now_template();
+		$search_form->tag_template();
+		$search_form->custom_fields_template();
+		$search_form->information_template();
+		$search_form->buttons_template();
 		?>
 	</form>
 </div>

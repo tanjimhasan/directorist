@@ -473,18 +473,12 @@ if (!class_exists('ATBDP_Review_Rating_DB')):
 
             $ratings = wp_cache_get( $cache_key, 'ratings' );
 
-            if( $ratings === false ) {
+            if ( $ratings === false ) {
                 $args = $wpdb->prepare( "SELECT rating FROM $this->table_name WHERE $db_field = %s LIMIT %d", $value, $limit );
                 if ( ! $ratings = $wpdb->get_results( $args ) ) { return false; }
                 wp_cache_set( $cache_key, $ratings, 'ratings', 5 ); // cache it for 1 minutes now then increase  it to 1 hour
             }
             return $ratings;
-
-
-
-
-
-
         }
 
 

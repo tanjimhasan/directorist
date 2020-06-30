@@ -399,8 +399,10 @@ if ( ! class_exists( 'ATBDP_Enqueuer' ) ):
             'directorist_add_listing',
             'directorist_listing_map',
         ]);
-
-        if ( $map_is_required ) {
+		
+		$is_single_listing_page = is_singular( ATBDP_POST_TYPE );
+		
+        if ( ! $map_is_required || $is_single_listing_page ) {
             if ( 'openstreet' === $map_type ) {
                 wp_enqueue_style('leaflet-css');
                 wp_enqueue_script('openstreet_layer');

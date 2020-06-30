@@ -10,9 +10,6 @@
  * @since 5.5.1
  * @package Directorist
  */
-
-global $listings;
-
 do_action('atbdp_before_all_listings_grid', $listings);
 ?>
 
@@ -25,26 +22,34 @@ do_action('atbdp_before_all_listings_grid', $listings);
      */
     do_action( 'directorist_archive_header', $listings );
     ?>
-
-    <div class="<?php $listings->grid_container_class(); ?>">
+    <div class="<?php echo esc_attr( $listings->grid_container_fluid() ); ?>">
         <?php
         /**
          * @since 5.0
          * It fires before the listings columns
          * It only fires if the parameter [directorist_all_listing action_before_after_loop="yes"]
          */
-        if ( $listings->get_the_prop( 'attributes', 'action_before_after_loop' ) ) {
+        if ($listings->action_before_after_loop) {
             do_action('atbdp_before_grid_listings_loop');
         }
 
-        $row_container = ( $listings->get_the_option('view_as') !== 'masonry_grid' ) ? '' : ' data-uk-grid';
+        $row_container = ($listings->view_as !== 'masonry_grid') ? '' : ' data-uk-grid';
         ?>
 
         <div class="row<?php echo esc_attr($row_container); ?>">
-        	<?php $listings->loop_template(); ?>
+
+        	<?php
+        	if ($listings->query->have_posts()) {
+        		$listings->loop_template('grid');
+        	}
+        	else { ?>
+        		<p class="atbdp_nlf"><?php esc_html_e('No listing found.', 'directorist'); ?></p>
+                <?php
+            }
+            ?>
+
         </div>
 
-        <?php return;  ?>
         <div class="row">
             <div class="col-lg-12">
                 <?php

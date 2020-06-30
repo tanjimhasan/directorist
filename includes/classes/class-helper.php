@@ -469,12 +469,23 @@ if ( isset( $_GET['activate'] ) ) {
             $error_message = sprintf( __( 'You need to be logged in to view the content of this page. You can login %s. Don\'t have an account? %s', 'directorist' ), apply_filters( 'atbdp_listing_form_login_link', "<a href='" . ATBDP_Permalink::get_login_page_link() . "'> " . __( 'Here', 'directorist' ) . '</a>' ), apply_filters( 'atbdp_listing_form_signup_link', "<a href='" . ATBDP_Permalink::get_registration_page_link() . "'> " . __( 'Sign Up', 'directorist' ) . '</a>' ) );
             ?>
                 <section class="directory_wrapper single_area">
-                    <?php $this->show_login_message( $error_message ); ?>
+                    <?php self::show_login_message( $error_message ); ?>
                 </section>
                 <?php
 
             return ob_get_clean();
         }
+
+        if ( '404' === $type ) { ob_start(); ?>
+        <section class="directory_wrapper single_area">
+            <div class="notice_wrapper">
+                <div class="alert alert-warning">
+                    <span class="fa fa-info-circle" aria-hidden="true"></span> 
+                    <?php _e('Nothing to show!'); ?>
+                </div>
+            </div>
+        </section>
+        <?php return ob_get_clean(); }
 
         return '';
     }
@@ -502,17 +513,17 @@ if ( isset( $_GET['activate'] ) ) {
         return $links;
     }
 
-    public function show_login_message( $message = '' ) {
+    public static function show_login_message( $message = '' ) {
 
         $t = ! empty( $message ) ? $message : '';
         $t = apply_filters( 'atbdp_unauthorized_access_message', $t );
         ?>
-            <div class="notice_wrapper">
-                <div class="alert alert-warning"><span class="fa fa-info-circle"
-                                                       aria-hidden="true"></span> <?php echo $t; ?></div>
-            </div>
-            <?php
-}
+        <div class="notice_wrapper">
+            <div class="alert alert-warning"><span class="fa fa-info-circle"
+                                                aria-hidden="true"></span> <?php echo $t; ?></div>
+        </div>
+        <?php
+        }
 
     /**
      * It converts a mysql datetime string to human readable relative time

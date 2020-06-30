@@ -5,7 +5,7 @@
  * @version 7.0
  */
 
-$listing = new Directorist_Single_Listing();
+$single_listing = new Directorist_Single_Listing();
 
 /**
  * @since 5.0
@@ -21,15 +21,15 @@ do_action('atbdp_before_listing_section');
             </div>
         <?php endif; ?>
 
-		<?php $listing->the_header_actions(); ?>
+		<?php $single_listing->the_header_actions(); ?>
     </div>
     <div class="atbdb_content_module_contents">
 
-        <?php $listing->the_slider(); ?>
+        <?php $single_listing->the_slider(); ?>
 
         <div class="atbd_listing_detail">
 
-        	<?php $listing->the_header_meta(); ?>
+        	<?php $single_listing->the_header_meta(); ?>
 
 			<div class="<?php echo apply_filters('atbdp_single_listing_title_class', 'atbd_listing_title');?>">
 				<?php

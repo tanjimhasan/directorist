@@ -84,7 +84,11 @@ class Directorist_Template_Hooks {
     }
 
     public static function popular_badge( $content ) {
-        $popular_listing_id = atbdp_popular_listings(get_the_ID());
+        global $listing_loop;
+
+        $avarage = $listing_loop->get_the_data( 'avarage' );
+        $popular_listing_id = atbdp_popular_listings(get_the_ID(), $avarage);
+
         $display_popular_badge_cart = get_directorist_option( 'display_popular_badge_cart', 1 ) ? true : false;
         $popular_badge_text         = get_directorist_option( 'popular_badge_text', __( 'Popular', 'directorist' ) );
     
@@ -595,12 +599,12 @@ class Directorist_Template_Hooks {
         }
     }
 
-    public static function archive_header($listings) {
-        if ( !$listings->header ) {
+    public static function archive_header( $listings ) {
+        if ( ! $listings->attributes['header'] ) {
             return;
         }
 
-        atbdp_get_shortcode_template( 'listings-archive/listings-header', array('listings' => $listings) );
+        atbdp_get_shortcode_template( 'listings-archive/listings-header' );
     }
 }
 

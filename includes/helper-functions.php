@@ -1336,7 +1336,6 @@ if (!function_exists('atbdp_get_paged_num')) {
      */
     function atbdp_get_paged_num()
     {
-
         global $paged;
 
         if (get_query_var('paged')) {
@@ -2858,51 +2857,23 @@ function related_listing_slider($all_listings, $pagenation, $is_disable_price, $
                                         </div>
 
                                         <?php
-                                        $plan_hours = true;
-                                        $u_badge_html = '<span class="atbd_upper_badge">';
-                                        if (is_fee_manager_active()) {
-                                            $plan_hours = is_plan_allowed_business_hours(get_post_meta(get_the_ID(), '_fm_plans', true));
-                                        }
-                                        if (is_business_hour_active() && $plan_hours && empty($disable_bz_hour_listing)) {
-                                            //lets check is it 24/7
-                                            $open = get_directorist_option('open_badge_text', __('Open Now', 'directorist'));
-                                            if (!empty($enable247hour)) {
-                                                $u_badge_html .= ' <span class="atbd_badge atbd_badge_open">' . $open . '</span>';
-
-                                            } else {
-                                                $bh_statement = BD_Business_Hour()->show_business_open_close($business_hours);
-
-                                                $u_badge_html .= $bh_statement;
-                                            }
-                                        }
-                                        $u_badge_html .= '</span>';
-
                                         /**
                                          * @since 5.0
+                                         * @hooked Directorist_Template_Hooks::business_hours_badge - 10
                                          */
-                                        echo apply_filters('atbdp_upper_badges', $u_badge_html);
+                                        ?>
+                                        <span class="atbd_upper_badge bh_only"><?php echo apply_filters('atbdp_upper_badges', '');?></span>
 
-
-                                        //Start lower badge
-                                        $l_badge_html = '<span class="atbd_lower_badge">';
-
-                                        if ($featured && !empty($display_feature_badge_cart)) {
-                                            $l_badge_html .= apply_filters( 'atbdp_featured_badge', '<span class="atbd_badge atbd_badge_featured">' . $feature_badge_text . '</span>' );
-                                        }
-
-                                        $popular_listing_id = atbdp_popular_listings(get_the_ID());
-                                        $badge = '<span class="atbd_badge atbd_badge_popular">' . $popular_badge_text . '</span>';
-                                        if ($popular_listing_id === get_the_ID()) {
-                                            $l_badge_html .= $badge;
-                                        }
-                                        //print the new badge
-                                        $l_badge_html .= new_badge();
-                                        $l_badge_html .= '</span>';
-
+                                        <?php
                                         /**
                                          * @since 5.0
+                                         * @hooked Directorist_Template_Hooks::featured_badge - 10
+                                         * @hooked Directorist_Template_Hooks::popular_badge - 15
+                                         * @hooked Directorist_Template_Hooks::new_listing_badge - 20
                                          */
-                                        echo apply_filters('atbdp_grid_lower_badges', $l_badge_html);
+                                        ?>
+                                        <span class="atbd_lower_badge"><?php echo apply_filters('atbdp_grid_lower_badges', '');?></span>
+                                        <?php
                                         if (!empty($display_mark_as_fav)) {
                                             // echo atbdp_listings_mark_as_favourite(get_the_ID());
                                         }
@@ -3748,10 +3719,14 @@ function atbdp_is_page($atbdppages = '')
  * @since 4.7.8
  */
 if (!function_exists('atbdp_popular_listings')) {
-    function atbdp_popular_listings($listing_id)
+    function atbdp_popular_listings($listing_id, $average = null)
     {
         $listing_popular_by = get_directorist_option('listing_popular_by');
-        $average = ATBDP()->review->get_average($listing_id);
+
+        if ( is_null( $average ) ) {
+            $average = ATBDP()->review->get_average($listing_id);
+        }
+
         $average_review_for_popular = get_directorist_option('average_review_for_popular', 4);
         $view_count = get_post_meta($listing_id, '_atbdp_post_views_count', true);
         $view_to_popular = get_directorist_option('views_for_popular');
@@ -4009,6 +3984,7 @@ if (!function_exists('get_atbdp_listings_ids')) {
             'post_type' => 'at_biz_dir',
             'posts_per_page' => -1,
             'post_status' => 'publish',
+            'fields' => 'ids'
         ));
 
         return new WP_Query($arg);
@@ -4848,6 +4824,17 @@ function get_plasma_slider( $args )
 function atbdp_style_example_image ($src) {
     $img = sprintf("<img src='%s'>", $src );
     echo $img;
+}
+
+/**
+ * Converts a string (e.g. 'yes' or 'no') to a bool.
+ *
+ * @since 7.0
+ * @param string $string String to convert.
+ * @return bool
+ */
+function atbdp_string_to_bool( $string ) {
+    return is_bool( $string ) ? $string : ( 'yes' === strtolower( $string ) || 1 === $string || 'true' === strtolower( $string ) || '1' === $string );
 }
 
 function view( $file_path, $data = null )

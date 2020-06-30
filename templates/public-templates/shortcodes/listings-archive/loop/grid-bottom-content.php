@@ -5,16 +5,17 @@
  * @version 7.0
  */
 
-if ( $listings->display_category || $listings->display_view_count ) { ?>
+ global $listings;
+
+if ( $listings->get_the_option( 'display_category' )  || $listings->get_the_option( 'display_view_count' ) ) { ?>
 	<div class="atbd_listing_bottom_content">
-		
-		<?php if ( $listings->display_category ): ?>
+		<?php if ( $listings->get_the_option( 'display_category' ) ): ?>
 			<div class="atbd_content_left">
-				<?php $listings->loop_cats_template();?> 
+				<?php $listings->categories_template();?> 
 			</div>
 		<?php endif; ?>
 
-		<?php $listings->loop_grid_footer_right_template();?> 
+		<?php $listings->grid_footer_right_template();?> 
 	</div>
 	<?php
 }

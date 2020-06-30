@@ -234,6 +234,7 @@ final class Directorist_Base
             self::$instance->custom_field = new ATBDP_Custom_Field;
             self::$instance->order = new ATBDP_Order;
             self::$instance->shortcode = new ATBDP_Shortcode;
+            self::$instance->shortcodes = new ATBDP_Shortcodes;
             self::$instance->email = new ATBDP_Email;
             self::$instance->seo = new ATBDP_SEO;
             self::$instance->validator = new ATBDP_Validator;
@@ -329,16 +330,26 @@ final class Directorist_Base
         load_dependencies('all', ATBDP_CLASS_DIR); // load all php files from ATBDP_CLASS_DIR
         load_dependencies('all', ATBDP_MODEL_DIR); // load all php files from ATBDP_MODEL_DIR
         load_dependencies('all', ATBDP_LIB_DIR); // load all php files from ATBDP_LIB_DIR
+
+        /*LOAD Stores*/
+        load_dependencies('all', ATBDP_INC_DIR . 'data-stores/');
+
+        /*LOAD Shortcodes*/
+        load_dependencies('all', ATBDP_INC_DIR . 'shortcodes/');
+
         /*LOAD Rating and Review functionality*/
         load_dependencies('all', ATBDP_INC_DIR . 'review-rating/');
+
         /*Load gateway related stuff*/
         load_dependencies('all', ATBDP_INC_DIR . 'gateways/');
 
         /*Load custom field related stuff*/
         load_dependencies('all', ATBDP_INC_DIR . 'custom-fields/');
+
         /*Load payment related stuff*/
         load_dependencies('all', ATBDP_INC_DIR . 'payments/');
         load_dependencies('all', ATBDP_INC_DIR . 'checkout/');
+
         /*Load payment related stuff*/
         require_once ATBDP_INC_DIR . 'custom-actions.php';
         require_once ATBDP_INC_DIR . 'custom-filters.php';
@@ -612,7 +623,8 @@ final class Directorist_Base
                     while ($listings->have_posts()) {
                         $listings->the_post();
                         $listing_id = get_the_ID();
-                        $average = ATBDP()->review->get_average($listing_id);
+                        $average = ATBDP()->review->get_average( $listing_id );
+
                         if ($average_review_for_popular <= $average) {
                             $rated[] = get_the_ID();
                         }

@@ -81,7 +81,7 @@ class ATBDP_Review_Rating{
             $ratings = array();
         }
 
-// set placeholder or default counter of individual stars
+        // set placeholder or default counter of individual stars
         $s_5 =0;
         $s_4 =0;
         $s_3 =0;
