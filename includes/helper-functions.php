@@ -18,6 +18,72 @@ if ( !function_exists('get_help') ) {
     }
 }
 
+
+if ( ! function_exists( 'atbdp_get_listing_order' ) ) :
+    // atbdp_get_listing_order
+    function atbdp_get_listing_order( $listing_id ) {
+        $order = new WP_Query([
+            'post_type' => 'atbdp_orders',
+            'meta_query' => array(
+                array(
+                    'key' => '_listing_id',
+                    'value' => $listing_id,
+                    'compare' => '=',
+                )
+            ),
+            'per_page' => 1
+
+        ]);
+
+        return $order->post;
+    }
+endif;
+
+if ( ! function_exists( 'atbdp_get_listing_status_after_submission' ) ) :
+// atbdp_get_listing_status_after_submission
+function atbdp_get_listing_status_after_submission( array $args = [] ) {
+    $default = ['id' => '', 'edited' => true];
+    $args = array_merge( $default, $args );
+
+    $args['edited'] = ( true === $args['edited'] || '1' === $args['edited'] || 'yes' === $args['edited'] ) ? true : false;  
+    $listing_id = $args['id'];
+    
+    $new_l_status   = get_directorist_option('new_listing_status', 'pending');
+    $edit_l_status  = get_directorist_option('edit_listing_status');
+    $edited         = $args['edited'];
+    $listing_status = ( true === $edited || 'yes' === $edited || '1' === $edited ) ? $edit_l_status : $new_l_status;
+
+    $monitization          = get_directorist_option('enable_monetization', 0);
+    $featured_enabled      = get_directorist_option('enable_featured_listing');
+    $pricing_plans_enabled = is_fee_manager_active();
+    
+    $post_status =  $listing_status;
+
+    // If Pricing Plans are Enabled
+    if ( $monitization && $pricing_plans_enabled ) {
+        $plan_id   = get_post_meta($listing_id, '_fm_plans', true);
+        $plan_meta = get_post_meta($plan_id);
+        $plan_type = $plan_meta['plan_type'][0];
+
+        $_listing_id    = ( 'pay_per_listng' === $plan_type ) ? $listing_id : false;
+        $plan_purchased = subscribed_package_or_PPL_plans(get_current_user_id(), 'completed', $plan_id, $_listing_id);
+        
+        $post_status = ( ! $plan_purchased ) ? 'pending' : $listing_status;
+    }
+
+    // If Featured Listing is Enabled
+    if ( $monitization && ! $pricing_plans_enabled && $featured_enabled ) {
+        $has_order      = atbdp_get_listing_order( $listing_id );
+        $payment_status = ( $has_order ) ? get_post_meta( $has_order->ID, '_payment_status', true) : null;
+
+        $post_status = ( $has_order && 'completed' !== $payment_status ) ? 'pending' : $listing_status;
+    }
+
+    return $post_status;
+}
+endif;
+
+
 if (!function_exists('load_dependencies')):
     /**
      * It loads files from a given directory using require_once.
@@ -2480,6 +2546,11 @@ function listing_view_by_grid($all_listings, $paginate, $is_disable_price)
                                     $l_badge_html .= '</span>';
 
                                     /**
+                                     * @since 6.4.4
+                                     */
+                                    do_action( 'atbdp_author_listings_before_favourite_icon' );
+
+                                    /**
                                      * @since 5.0
                                      */
                                     echo apply_filters('atbdp_grid_lower_badges', $l_badge_html);
@@ -2868,6 +2939,11 @@ function related_listing_slider($all_listings, $pagenation, $is_disable_price, $
 
                                         <?php
                                         /**
+                                         * @since 6.4.4
+                                         */
+                                        do_action( 'atbdp_related_post_before_lower_badge' );
+
+                                        /**
                                          * @since 5.0
                                          * @hooked Directorist_Template_Hooks::featured_badge - 10
                                          * @hooked Directorist_Template_Hooks::popular_badge - 15
@@ -2918,8 +2994,10 @@ function related_listing_slider($all_listings, $pagenation, $is_disable_price, $
 
                                                     <?php
                                                     $meta_html .= '<div class="atbd_listing_meta">';
+                                                    if ( !empty( $display_review ) ) {
                                                     $average = ATBDP()->review->get_average(get_the_ID());
                                                     $meta_html .= '<span class="atbd_meta atbd_listing_rating">' . $average . '<i class="' . atbdp_icon_type() . '-star"></i></span>';
+                                                    }
                                                     $atbd_listing_pricing = !empty($atbd_listing_pricing) ? $atbd_listing_pricing : '';
                                                     if (!empty($display_price) && !empty($display_pricing_field)) {
                                                         if (!empty($price_range) && ('range' === $atbd_listing_pricing)) {
@@ -3417,6 +3495,12 @@ function listing_view_by_list($all_listings, $display_image, $show_pagination, $
                                             href="<?php the_permalink(); ?>"><?php printf(__(' %s', 'directorist'), $readmore_text); ?></a></p>
                                         <?php }
                                     }
+
+                                    /**
+                                     * @since 6.4.4
+                                     */
+                                    do_action( 'atbdp_all_list_listings_before_favourite_icon' );
+
                                     if (!empty($display_mark_as_fav)) {
                                         $mark_as_fav_for_list_view = apply_filters('atbdp_mark_as_fav_for_list_view', atbdp_listings_mark_as_favourite(get_the_ID()));
                                         echo $mark_as_fav_for_list_view;
@@ -3539,6 +3623,32 @@ if (!function_exists('is_fee_manager_active')) {
 
     }
 }
+
+if ( ! function_exists( 'atbdp_pricing_plan_is_enabled' ) ) :
+    // atbdp_pricing_plan_is_enabled
+    function atbdp_pricing_plan_is_enabled() {
+        $pricing_plan_is_enabled = get_directorist_option('fee_manager_enable', 1);
+
+        if ( class_exists('ATBDP_Pricing_Plans') && $pricing_plan_is_enabled) {
+            return true;
+        }
+
+        return false;
+    }
+endif;
+
+if ( ! function_exists( 'atbdp_wc_pricing_plan_is_enabled' ) ) :
+    // atbdp_wc_pricing_plan_is_enabled
+    function atbdp_wc_pricing_plan_is_enabled() {
+        $wc_pricing_plan_is_enabled = get_directorist_option('woo_pricing_plans_enable', 1);
+
+        if ( class_exists('DWPP_Pricing_Plans') && $wc_pricing_plan_is_enabled) {
+            return true;
+        }
+
+        return false;
+    }
+endif;
 
 if (!function_exists('atbdp_deactivate_reasons')) {
     /**
@@ -3846,9 +3956,12 @@ function bdas_dropdown_terms($args = array(), $echo = true)
                 $html .= sprintf('<select class="%s" data-taxonomy="%s" data-parent="%d"%s>', $args['class'], $args['taxonomy'], $args['parent'], $required);
                 $html .= sprintf('<option value="%s">%s</option>', $args['option_none_value'], $args['show_option_none']);
             } else {
+                $category_placeholder = apply_filters('atbdp_search_sub_category_placeholder', __('Select a Sub Category','directorist') );
+                $location_placeholder = apply_filters('atbdp_search_sub_location_placeholder', __('Select a Sub Location','directorist') );
+                $placeholder = ( $args['taxonomy'] == 'at_biz_dir-location') ? $location_placeholder : $category_placeholder;
                 $html .= sprintf('<div class="bdas-child-terms bdas-child-terms-%d">', $args['parent']);
                 $html .= sprintf('<select class="%s" data-taxonomy="%s" data-parent="%d">', $args['class'], $args['taxonomy'], $args['parent']);
-                $html .= sprintf('<option value="%d">%s</option>', $args['parent'], '---');
+                $html .= sprintf('<option value="%d">%s</option>', $args['parent'], $placeholder);
             }
 
             foreach ($terms as $term) {
@@ -3998,34 +4111,7 @@ if (!function_exists('get_atbdp_listings_ids')) {
 if (!function_exists('atbdp_get_expired_listings')) {
     function atbdp_get_expired_listings($texonomy, $categories)
     {
-        $arg = (array(
-            'post_type' => 'at_biz_dir',
-            'posts_per_page' => -1,
-            'post_status' => 'publish',
-            'meta_query' => array(
-                'relation' => 'OR',
-                array(
-                    'key' => '_expiry_date',
-                    'value' => current_time('mysql'),
-                    'compare' => '<', // eg. expire date 6 <= current date 7 will return the post
-                    'type' => 'DATETIME'
-                ),
-                array(
-                    'key' => '_never_expire',
-                    'value' => '',
-                )
-            ),
-            'tax_query' => array(
-                array(
-                    'taxonomy' => $texonomy,
-                    'field' => 'id',
-                    'terms' => !empty($categories) ? $categories : array(),
-                    'include_children' => true,
-                )
-            ),
-        ));
-
-        return new WP_Query($arg);
+        return new WP_Query(array());
     }
 }
 
@@ -4060,8 +4146,13 @@ function atbdp_get_current_url()
 function atbdp_can_use_yoast()
 {
 
-    $can_use_yoast = false;
-    if ((in_array('wordpress-seo/wp-seo.php', apply_filters('active_plugins', get_option('active_plugins'))))) {
+    $can_use_yoast  = false;
+    $active_plugins = apply_filters('active_plugins', get_option('active_plugins'));
+
+    $yoast_free_is_active    = ( in_array('wordpress-seo/wp-seo.php', $active_plugins) ) ? true : false;
+    $yoast_premium_is_active = ( in_array('wordpress-seo-premium/wp-seo-premium.php', $active_plugins) ) ? true : false;
+
+    if ( $yoast_free_is_active || $yoast_premium_is_active ) {
         $can_use_yoast = true;
     }
 
@@ -4077,10 +4168,9 @@ function atbdp_can_use_yoast()
  */
 function atbdp_disable_overwrite_yoast()
 {
-
     $overwrite = false;
     $overwrite_yoast = get_directorist_option('overwrite_by_yoast');
-    if (!empty($overwrite_yoast) || (!in_array('wordpress-seo/wp-seo.php', apply_filters('active_plugins', get_option('active_plugins'))))) {
+    if ( ! empty($overwrite_yoast) || ! atbdp_can_use_yoast() ) {
         $overwrite = true;
     }
 
@@ -4556,7 +4646,8 @@ function atbdp_create_required_pages(){
         // $op_name is the page option name in the database.
         // if we do not have the page id assigned in the settings with the given page option name, then create an page
         // and update the option.
-        if (empty($options[$op_name])) {
+        
+        if (empty($options[$op_name]) || !get_post($options[$op_name])) {
 
             $id = wp_insert_post(
                 array(

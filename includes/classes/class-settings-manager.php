@@ -5778,7 +5778,20 @@ The Administrator of ==SITE_NAME==
                     'description' => __('Allow to display image of reviewer on single listing page.', 'directorist'),
                     'default' => 1,
                 ),
-
+                array(
+                    'type' => 'toggle',
+                    'name' => 'enable_reviewer_content',
+                    'label' => __('Enable Reviewer content', 'directorist'),
+                    'description' => __('Allow to display content of reviewer on single listing page.', 'directorist'),
+                    'default' => 1,
+                ),
+                array(
+                    'type' => 'toggle',
+                    'name' => 'required_reviewer_content',
+                    'label' => __('Required Reviewer content', 'directorist'),
+                    'description' => __('Allow to Require the content of reviewer on single listing page.', 'directorist'),
+                    'default' => 1,
+                ),
                 array(
                     'type' => 'slider',
                     'name' => 'review_num',
@@ -6017,7 +6030,7 @@ The Administrator of ==SITE_NAME==
                     'label' => __('Disable Listing Price', 'directorist'),
                     'default' => 0,
                 ),
-                array(
+                'enable_single_location_taxonomy' => array(
                     'type' => 'toggle',
                     'name' => 'enable_single_location_taxonomy',
                     'label' => __('Display Location', 'directorist'),

@@ -401,6 +401,14 @@ if ( isset( $_GET['activate'] ) ) {
         return $icon;
     }
 
+    // format_date
+    public static function format_date( $timestamp ) {
+        $date_format = get_option( 'date_format' );
+        $date = date( $date_format, strtotime( $timestamp ));
+
+        return $date;
+    }
+
     /**
      * Darken or lighten a given hex color and return it.
      * @param string $hex Hex color code to be darken or lighten

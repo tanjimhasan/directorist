@@ -204,7 +204,7 @@ if (!class_exists('ATBDP_Add_Listing')):
                     $midway_package_id = !empty($midway_package_id) ? $midway_package_id : $sub_plan_id;
                     $plan_purchased = subscribed_package_or_PPL_plans($user_id, 'completed', $midway_package_id);
                     if (!class_exists('DWPP_Pricing_Plans')) {
-                        $plan_purchased = $plan_purchased[0];
+                        $plan_purchased = $plan_purchased ? $plan_purchased[0] : '';
                     }
                     $subscribed_package_id = $midway_package_id;
                     $plan_type = package_or_PPL($subscribed_package_id);
@@ -221,6 +221,8 @@ if (!class_exists('ATBDP_Add_Listing')):
                         $featured = get_post_meta($listing_id, '_featured', true);
                         $total_regular_listing = $num_regular - ('0' === $featured ? $user_regular_listing + 1 : $user_regular_listing);
                         $total_featured_listing = $num_featured - ('1' === $featured ? $user_featured_listing + 1 : $user_featured_listing);
+                        $total_regular_listing = max($total_regular_listing, 0);
+                        $total_featured_listing = max($total_featured_listing, 0);
                         $subscribed_date = $plan_purchased->post_date;
                         $package_length = get_post_meta($subscribed_package_id, 'fm_length', true);
                         $regular_unl = get_post_meta($subscribed_package_id, 'num_regular_unl', true);
@@ -286,7 +288,6 @@ if (!class_exists('ATBDP_Add_Listing')):
                     'post_type' => ATBDP_POST_TYPE,
                     'tax_input' => !empty($p['tax_input']) ? atbdp_sanitize_array($p['tax_input']) : array(),
                     'meta_input' => $metas,
-
                 );
                 /**
                  * @since 4.4.0
@@ -300,21 +301,23 @@ if (!class_exists('ATBDP_Add_Listing')):
                      * @since 5.4.0
                      */
                     do_action('atbdp_before_processing_to_update_listing');
-                    $edit_l_status = get_directorist_option('edit_listing_status');
-                    if ('pending' === $edit_l_status) {
+
+                    $listing_id = absint( $p['listing_id'] );
+                    $_args = [ 'id' => $listing_id, 'edited' => true ];
+                    $post_status = atbdp_get_listing_status_after_submission( $_args );
+                    $args['post_status'] = $post_status;
+
+                    if ( 'pending' === $post_status ) {
                         $data['pending'] = true;
                     }
+
                     // update the post
-                    $args['ID'] = absint($p['listing_id']); // set the ID of the post to update the post
-                    if (!empty($edit_l_status)) {
-                        $args['post_status'] = $edit_l_status; // set the status of edit listing.
-                    }
+                    $args['ID'] = $listing_id; // set the ID of the post to update the post
+                    
                     if (!empty($preview_enable)) {
                         $args['post_status'] = 'private';
                     }
-                    if ('publish' === get_post_status( $p['listing_id'] )){
-                        $args['post_status'] = $edit_l_status;
-                    }
+
                     // Check if the current user is the owner of the post
                     $post = get_post($args['ID']);
                     // update the post if the current user own the listing he is trying to edit. or we and give access to the editor or the admin of the post.
@@ -372,6 +375,7 @@ if (!class_exists('ATBDP_Add_Listing')):
                             $content = apply_filters('get_the_content', $post_object->post_content);
                             $args['post_content'] = $content;
                         }
+
                         $post_id = wp_update_post($args);
 
 
@@ -465,14 +469,17 @@ if (!class_exists('ATBDP_Add_Listing')):
 
 
                 } else {
+                    
                     // the post is a new post, so insert it as new post.
-                    if (current_user_can('publish_at_biz_dirs')) {
+                    if (current_user_can('publish_at_biz_dirs') && (!isset($data['error']))) {
                         $new_l_status = get_directorist_option('new_listing_status', 'pending');
+                        $args['post_status'] = $new_l_status;
+
                         if ('pending' === $new_l_status) {
                             $data['pending'] = true;
                         }
+                        
                         $monitization = get_directorist_option('enable_monetization', 0);
-                        $args['post_status'] = $new_l_status;
                         //if listing under a purchased package
                         if (is_fee_manager_active()) {
                             if (('package' === package_or_PPL($plan = null)) && $plan_purchased && ('publish' === $new_l_status)) {
@@ -761,7 +768,6 @@ if (!class_exists('ATBDP_Add_Listing')):
                                     $data['need_payment'] = true;
                                 } else {
                                     update_user_meta(get_current_user_id(), '_used_free_plan', array($subscribed_package_id, $post_id));
-
                                     if ('view_listing' == $redirect_page) {
                                         $data['redirect_url'] = get_permalink($post_id);
                                         $data['success'] = true;
@@ -886,6 +892,7 @@ if (!class_exists('ATBDP_Add_Listing')):
             $temp_token = isset($_GET['token']) ? $_GET['token'] : '';
             $renew_from = isset($_GET['renew_from']) ? $_GET['renew_from'] : '';
             $token = get_post_meta($id, '_renewal_token', true);
+            
             if (!empty($action) && !empty($id)) {
             if ('renew' == $action) {
             if(($temp_token === $token) || $renew_from){
@@ -916,61 +923,47 @@ if (!class_exists('ATBDP_Add_Listing')):
             do_action('atbdp_before_renewal', $listing_id);
             update_post_meta($listing_id, '_featured', 0); // delete featured
             //for listing package extensions...
-            $has_paid_submission = apply_filters('atbdp_has_paid_submission', 0, $listing_id, 'renew');
-
             $active_monetization = get_directorist_option('enable_monetization');
-            if ($has_paid_submission && $active_monetization) {
+            $enable_featured_listing = get_directorist_option('enable_featured_listing');
+            if (  $active_monetization && $enable_featured_listing ) {
                 // if paid submission enabled/triggered by an extension, redirect to the checkout page and let that handle it, and vail out.
-                wp_safe_redirect(ATBDP_Permalink::get_checkout_page_link($listing_id));
+                update_post_meta( $listing_id, '_refresh_renewal_token', 1 );
+                wp_safe_redirect( ATBDP_Permalink::get_checkout_page_link( $listing_id ) );
                 exit;
             }
-
-            $time = current_time('mysql');
-            $post_array = array(
-                'ID' => $listing_id,
-                'post_status' => 'publish',
-                'post_date' => $time,
-                'post_date_gmt' => get_gmt_from_date($time)
-            );
-
-            //Updating listing
-            wp_update_post($post_array);
-
-            // Update the post_meta into the database
-            $old_status = get_post_meta($listing_id, '_listing_status', true);
-            if ('expired' == $old_status) {
-                $expiry_date = calc_listing_expiry_date();
-            } else {
-                $old_expiry_date = get_post_meta($listing_id, '_expiry_date', true);
-                $expiry_date = calc_listing_expiry_date($old_expiry_date);
-            }
-            // update related post metas
-            update_post_meta($listing_id, '_expiry_date', $expiry_date);
-            update_post_meta($listing_id, '_listing_status', 'post_status');
-
-            $exp_days = get_directorist_option('listing_expire_in_days', 999, 999);
-            if ($exp_days <= 0) {
-                update_post_meta($listing_id, '_never_expire', 1);
-            } else {
-                update_post_meta($listing_id, '_never_expire', 0);
-            }
-            do_action('atbdp_after_renewal', $listing_id);
-
-
-            $featured_active = get_directorist_option('enable_featured_listing');
-            $has_paid_submission = apply_filters('atbdp_has_paid_submission', $featured_active, $listing_id, 'renew');
-            if ($has_paid_submission && $active_monetization) {
-                $r_url = ATBDP_Permalink::get_checkout_page_link($listing_id);
-            } else {
-                //@todo; Show notification on the user page after renewing.
+                $time = current_time('mysql');
+                $post_array = array(
+                    'ID' => $listing_id,
+                    'post_status' => 'publish',
+                    'post_date' => $time,
+                    'post_date_gmt' => get_gmt_from_date($time)
+                );
+                //Updating listing
+                wp_update_post($post_array);
+                // Update the post_meta into the database
+                $old_status = get_post_meta($listing_id, '_listing_status', true);
+                if ('expired' == $old_status) {
+                    $expiry_date = calc_listing_expiry_date();
+                } else {
+                    $old_expiry_date = get_post_meta($listing_id, '_expiry_date', true);
+                    $expiry_date = calc_listing_expiry_date($old_expiry_date);
+                }
+                // update related post metas
+                update_post_meta($listing_id, '_expiry_date', $expiry_date);
+                update_post_meta($listing_id, '_listing_status', 'post_status');
+                $exp_days = get_directorist_option('listing_expire_in_days', 999, 999);
+                if ($exp_days <= 0) {
+                    update_post_meta($listing_id, '_never_expire', 1);
+                } else {
+                    update_post_meta($listing_id, '_never_expire', 0);
+                }
+                do_action('atbdp_after_renewal', $listing_id);
                 $r_url = add_query_arg('renew', 'success', ATBDP_Permalink::get_dashboard_page_link());
-            }
-            update_post_meta($listing_id, '_renewal_token', 0);
-            // hook for dev
-            do_action('atbdp_before_redirect_after_renewal', $listing_id);
-            wp_safe_redirect($r_url);
-            exit;
-
+                update_post_meta($listing_id, '_renewal_token', 0);
+                // hook for dev
+                do_action('atbdp_before_redirect_after_renewal', $listing_id);
+                wp_safe_redirect($r_url);
+                exit;
         }
 
 

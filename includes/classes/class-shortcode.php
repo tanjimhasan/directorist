@@ -177,6 +177,7 @@ if (!class_exists('ATBDP_Shortcode')):
 
         public function ajax_callback_custom_fields($post_id = 0, $term_id = array()) {
             $ajax = false;
+
             if (isset($_POST['term_id'])) {
                 $ajax = true;
                 $post_ID = !empty($_POST['post_id']) ? (int)$_POST['post_id'] : '';
@@ -257,7 +258,6 @@ if (!class_exists('ATBDP_Shortcode')):
                     wp_die();
                 }
             } else {
-                echo '<div class="custom_field_empty_area"></div>';
                 if ($ajax) {
                     wp_die();
                 }
