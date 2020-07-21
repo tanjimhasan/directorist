@@ -72,6 +72,66 @@ if (!class_exists('ATBDP_Ajax_Handler')) :
             add_action('wp_ajax_atbdp_guest_reception', array($this, 'guest_reception'));
             add_action('wp_ajax_nopriv_atbdp_guest_reception', array($this, 'guest_reception'));
 
+            // Upload Listings Single Attachment
+            add_action('wp_ajax_atbdp_upload_listings_single_attachment', array($this, 'upload_listings_single_attachment'));
+            add_action('wp_ajax_nopriv_atbdp_upload_listings_single_attachment', array($this, 'upload_listings_single_attachment'));
+
+        }
+
+        // upload_listings_single_attachment
+        public function upload_listings_single_attachment() {
+            $files            = ! empty( $_FILES["attachment_file"] ) ? $_FILES["attachment_file"] : array();
+            $post_id          = ! empty( $_POST["post_id"] ) ? $_POST["post_id"] : 0;
+            $attachment_key   = ! empty( $_POST["attachment_key"] ) ? $_POST["attachment_key"] : '';
+
+            $error_log = [];
+            $data      = [];
+
+            $attach_data = array();
+            if ( $files ) {
+                foreach ($files['name'] as $key => $value) {
+                    if ($files['name'][$key]) {
+                        $file = array(
+                            'name'     => $files['name'][$key],
+                            'type'     => $files['type'][$key],
+                            'tmp_name' => $files['tmp_name'][$key],
+                            'error'    => $files['error'][$key],
+                            'size'     => $files['size'][$key]
+                        );
+                        $_FILES["my_file_upload"] = $file;
+                        $meta_data = [];
+                        $meta_data['id'] = atbdp_handle_attachment("my_file_upload", $post_id);
+                        array_push($attach_data, $meta_data);
+                    }
+                }
+            }
+
+            if ( empty( $attach_data )  ) {
+                $error_log[] = [
+                    'key'     => 'no_file_found',
+                    'message' => 'No File Found',
+                ];
+
+                $data['error_log'] = $error_log;
+                $data['status']    = false;
+
+                wp_send_json( $data, 200 );
+            }
+
+
+            if ( ! empty( $post_id ) && ! empty( $attachment_key ) ) {
+                $temp_name        = "{$attachment_key}_temp";
+                $current_value    = $attach_data[0]['id'];
+                $temp_attachments = [];
+                $old_data         = get_post_meta( $post_id, $temp_name, true );
+
+                if ( ! empty( $old_data ) ) {
+                    $temp_attachments = is_string(  $old_data ) ? [ $old_data ] : $old_data;
+                }
+
+                array_push( $temp_attachments, $current_value );
+                update_post_meta($post_id, "{$attachment_key}_temp", $temp_attachments);
+            }
         }
 
         // guest_reception

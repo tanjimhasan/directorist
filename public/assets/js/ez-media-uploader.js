@@ -890,6 +890,11 @@
       this.validateFiles();
     };
 
+    // updateUploadStatus
+    this.updateUploadStatus = function( event_type, args ) {
+      console.log( event_type, args );
+    };
+
     // layoutIsReady
     this.layoutIsReady = function () {
       var self = this;

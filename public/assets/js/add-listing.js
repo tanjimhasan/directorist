@@ -308,6 +308,8 @@ jQuery(function ($) {
         }
 
         var form_data = new FormData();
+        var attachment_data = [];
+        
         $(".listing_submit_btn").addClass("atbd_loading");
 
         function atbdp_multi_select(field, name) {
@@ -338,24 +340,40 @@ jQuery(function ($) {
             var hasValidFiles = listingMediaUploader.hasValidFiles();
             if ( hasValidFiles ) {
                 //files
-                var files = listingMediaUploader.getTheFiles();
-                if (files) {
+                // var files = listingMediaUploader.getTheFiles();
+
+                /* if (files) {
                     for (var i = 0; i < files.length; i++) {
                         form_data.append('listing_img[]', files[i]);
                     }
-                }
+                } */
                 var files_meta = listingMediaUploader.getFilesMeta();
-                if (files_meta) {
+                attachment_data.push({
+                    name: 'listing_img',
+                    files: files_meta,
+                    beforeSend: function() {
+                        listingMediaUploader.updateUploadStatus( 'beforeSend', {} );
+                    },
+                    onUploadProgress: function( args ) {
+                        listingMediaUploader.updateUploadStatus( 'onUploadProgress', args )
+                    },
+                    onComplete: function( args ) {
+                        listingMediaUploader.updateUploadStatus( 'onComplete', args )
+                    },
+                });
+                
+                /* if (files_meta) {
+                    attachment_data.listing_img = [];
+
                     for (var i = 0; i < files_meta.length; i++) {
                         var elm = files_meta[i];
+
                         for (var key in elm) {
                             form_data.append('files_meta[' + i + '][' + key + ']', elm[key]);
                         }
+                        
                     }
-                }
-
-                console.log( files, files_meta );
-                return;
+                } */
             } else {
                 $(".listing_submit_btn").removeClass("atbd_loading");
                 err_log.listing_gallery = { msg: 'Listing gallery has invalid files' };
@@ -606,8 +624,10 @@ jQuery(function ($) {
                     $(".listing_submit_btn").removeClass("atbd_loading");
                 } else {
                     console.log( response.id );
-                    var upload_post_media = upload_post_media( response.id, listings_attachments );
+                    var uploaded_files = upload_the_attachments( response.id, attachment_data );
                     return;
+
+                    
                     // preview on and no need to redirect to payment
                     if ((response.preview_mode === true) && (response.need_payment !== true)) {
                         if (response.edited_listing !== true) {
@@ -649,9 +669,100 @@ jQuery(function ($) {
     });
 
 
-    // upload_post_media
-    function upload_post_media( post_id, listings_attachments ) {
-        console.log( post_id, listings_attachments );
+    // upload_the_attachments
+    function upload_the_attachments( post_id, listings_attachments ) {
+        var status_log = [];
+        var uploaded_attachmentIDs = [];
+
+
+        forEach( listings_attachments, function( field_item, field_index ) {
+            if ( 'beforeSend' in field_item ) {
+                field_item.beforeSend();
+            }
+        });
+
+        forEach( listings_attachments, function( field_item, field_index ) {
+            forEach( field_item.files, function( file_item, file_index ) {
+                if ( ! ( 'attachmentID' in file_item ) ) {
+                    
+                    var attachmentID = get_the_attachment_id({
+                        post_id: post_id,
+                        key: field_item.name,
+                        file_id: file_item.id,
+                        file: file_item.file,
+                        onUploadProgress: field_item.onUploadProgress,
+                    });
+
+                    if ( null !== attachmentID ) {
+                        uploaded_attachmentIDs.push({
+                            field_index: field_index,
+                            file_index: file_index,
+                            attachmentID: attachmentID,
+                        });
+                    }
+                    // beforeSend onUploadProgress onComplete
+                }
+            });
+        });
+
+        forEach( uploaded_attachmentIDs, function( attachment_id ) {
+            var field_index  = attachment_id.field_index;
+            var file_index   = attachment_id.file_index;
+            var attachmentID = attachment_id.attachmentID;
+
+            listings_attachments[field_index].files[file_index].attachmentID = attachmentID
+        });
+
+        
+        var the_attachmeent_data = {};
+        forEach( listings_attachments, function( attachment ){
+            var attachments_ids = [];
+            forEach( attachment.files, function( file ) {
+                attachments_ids.push( { attachmentID: file.attachmentID } );
+            });
+
+            the_attachmeent_data[ attachment.name ] = attachments_ids;
+        });
+
+        console.log( the_attachmeent_data );
+        return 1;
+    }
+
+    // get_the_attachment_id
+    function get_the_attachment_id( args ) {
+
+        var form_data = new FormData();
+        form_data.append( 'action', 'atbdp_upload_post_single_attachment' );
+        form_data.append( 'post_id', args.post_id );
+        form_data.append( 'attachment_key', args.key );
+        form_data.append( 'attachment_file', args.file );
+
+        $.ajax({
+            method: 'POST',
+            processData: false,
+            contentType: false,
+            async: false,
+            url: atbdp_add_listing.ajaxurl,
+            data: form_data,
+            uploadProgress: function (event, position, total, percentComplete) {
+                var file_id = args.file_id;
+                args.onUploadProgress({
+                    id: file_id,
+                    event: event,
+                    position: position,
+                    total: total,
+                    percentComplete: percentComplete,
+                });
+            },
+            success: function (response) {
+                console.log( response );
+            },
+            error: function (error) {
+                console.log( error );
+            },
+        });
+
+
     }
 
     // scrollToEl
@@ -664,5 +775,12 @@ jQuery(function ($) {
             scrollTop: scroll_top
         }, 800);
     }
+
+    // forEach
+  function forEach(array, cb) {
+    for (var i = 0; i < array.length; i++) {
+      cb(array[i], i);
+    }
+  }
 
 });
