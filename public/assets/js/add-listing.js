@@ -648,6 +648,12 @@ jQuery(function ($) {
 
     });
 
+
+    // upload_post_media
+    function upload_post_media( post_id, listings_attachments ) {
+        console.log( post_id, listings_attachments );
+    }
+
     // scrollToEl
     function scrollToEl( el ) {
         var element = ( typeof el === 'string' ) ? el : '';
